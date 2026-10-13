@@ -1,0 +1,7 @@
+# Game files are not distributed by this repository
+ssf2-r36s/game/*.swf
+ssf2-r36s/game/data/
+ssf2-r36s/rufflesa
+ssf2-r36s/logs/
+*.zip
+.DS_Store
