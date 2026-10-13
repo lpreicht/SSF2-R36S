@@ -20,7 +20,7 @@ Expected SD-card structure:
 EASYROMS/ports/
 ├── Super Smash Flash 2.sh
 └── ssf2-r36s/
-    ├── rufflesa                  (ARM64 runtime provided by Actions artifact)
+    ├── rufflesa                  (ARM64 Ruffle runtime, local path patch)\n    ├── bin/console_detect        (local 640x480 compatibility helper)
     ├── keymap/SSF2Portable.cfg
     ├── game/
     │   ├── SSF2Portable.swf      (you supply)
@@ -30,7 +30,7 @@ EASYROMS/ports/
     └── logs/last-run.log         (generated)
 ```
 
-The launcher reports missing DAT numbers without treating them as fatal, runs Ruffle with low-quality rendering and logs startup errors. It does **not** remount the root filesystem or change `/usr/local/bin`.
+The launcher reports missing DAT numbers without treating them as fatal, runs Ruffle with low-quality rendering and logs startup errors. Ruffle's bundled ARM64 binary originally contains a hardcoded path to \`/usr/local/bin/console_detect\`; the GitHub Actions build makes a size-preserving path substitution to a local compatibility helper under \`ssf2-r36s/bin/\`. This is a patched binary: it does not require remounting ArkOS or changing system files. It does **not** remount the root filesystem or change `/usr/local/bin`.
 
 ## Controls (provisional)
 
@@ -45,4 +45,4 @@ Ruffle support for advanced ActionScript 3 and loading 378 external assets is no
 
 SSF2 © its respective rights holders. Obtain the game at https://www.supersmashflash.com/play/ssf2/downloads/ .
 
-ARM64 Ruffle runtime obtained at packaging time from https://github.com/Cristiangc67/ruffle-r36s-darkos (built upon https://github.com/ruffle-rs/ruffle, https://github.com/aweigit/ruffle-miyooflip and lcdyk0517/arkos4clone). Respect their open-source license notices when redistributing. This project is unofficial and unaffiliated.
+Patched ARM64 Ruffle runtime obtained at packaging time from https://github.com/Cristiangc67/ruffle-r36s-darkos (built upon https://github.com/ruffle-rs/ruffle, https://github.com/aweigit/ruffle-miyooflip and lcdyk0517/arkos4clone). Respect their open-source license notices when redistributing. This project is unofficial and unaffiliated.
