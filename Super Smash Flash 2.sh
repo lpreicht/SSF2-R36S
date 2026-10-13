@@ -28,7 +28,7 @@ run() {
   for ((i=0; i<=377; i++)); do
     if [[ ! -f "$ASSETS/DAT${i}.ssf" ]]; then
       ((missing+=1))
-      printf 'NOTICE: DAT${i}.ssf not present\n'
+      printf 'NOTICE: DAT%s.ssf not present\n' "$i"
     fi
   done
   present=$(find "$ASSETS" -maxdepth 1 -type f -name 'DAT*.ssf' | wc -l)
