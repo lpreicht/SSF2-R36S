@@ -49,6 +49,21 @@ The 1.4.0.1 loading screen reached ~30% but Ruffle was killed with exit code 137
 
 The upstream Ruffle project has open SSF2 loading and performance issues: https://github.com/ruffle-rs/ruffle/issues/21876 and https://github.com/ruffle-rs/ruffle/issues/24032 .
 
+## Confirmed resource bottleneck: SSF2 1.4.0.1 on R36S (2026-10-13)
+
+The official 1.4.0.1 portable SWF reaches **31% loading**, then is killed with code 137, **even when launched silently**.
+
+Measurements on the R36S (897 MB RAM, 768 MiB zram swap):
+
+- Ruffle peak physical RSS ~789 MiB (807,884 KiB).
+- Ruffle swap use ~675 MiB (691,128 KiB).
+- System MemAvailable ~10 MiB, SwapFree reaches **0**.
+- Linux sends SIGKILL (exit 137). Strongly consistent with out-of-memory pressure; no kernel OOM-kill record was captured.
+
+Audio was disabled for this run; the issue remained unchanged. Low rendering quality is already active, so visual-quality changes alone are unlikely to solve the memory deficit. Blindly increasing swap can produce extreme slowdown and SD wear; **do not enable disk swap automatically**.
+
+**Plan:** Treat SSF2 1.4.0.1 as blocked on this hardware pending verified substantive memory reductions in the Ruffle runtime/game loading path. For a practical next test, obtain the **official SSF2 0.8b** archive from https://www.supersmashflash.com/play/ssf2/downloads/archives/ , inspect the archive layout, and build a **separate legacy-mode launcher**. A community member has reported that 0.8b works on an R36S using AeroFlash, but this is not yet independently verified in this repository: https://www.reddit.com/r/R36S/comments/1vvmyfw/super_smash_flash_2_on_r36s_and_flash_games_o/
+
 ## Current limitations
 
 Ruffle support for advanced ActionScript 3 and loading 378 external assets is not guaranteed on this device. R36S RAM is about 1 GB, and upstream Ruffle has reported SSF2 memory/performance and rendering problems. There is no confirmed playable frame rate for SSF2 Beta 1.4.0.1 on this hardware.
