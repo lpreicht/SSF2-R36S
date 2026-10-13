@@ -11,7 +11,7 @@ A dedicated **Super Smash Flash 2** game entry in ArkOS Ports. It uses an ARM64 
 3. From your legally downloaded **SSF2 Beta 1.4.0.1 Windows Portable** copy only:
    - `SSF2Portable.swf` → `EASYROMS/ports/ssf2-r36s/game/SSF2Portable.swf`
    - the whole `data` directory → `EASYROMS/ports/ssf2-r36s/game/data/`
-4. Check that the `data` directory contains `DAT0.ssf` through `DAT377.ssf` (378 separate data files). **Do not rename or convert them.**
+4. Copy the **entire original `data` directory** without renaming or converting anything. Numbered DAT files do not necessarily have to form an uninterrupted sequence; the launcher reports absent numbers but does not block the game.
 5. Open **Ports → Super Smash Flash 2** on your R36S. If it fails to run, send `ssf2-r36s/logs/last-run.log` and report how far it gets.
 
 Expected SD-card structure:
@@ -30,7 +30,7 @@ EASYROMS/ports/
     └── logs/last-run.log         (generated)
 ```
 
-The launcher verifies all 378 data files, runs Ruffle with low-quality rendering and logs startup errors. It does **not** remount the root filesystem or change `/usr/local/bin`.
+The launcher reports missing DAT numbers without treating them as fatal, runs Ruffle with low-quality rendering and logs startup errors. It does **not** remount the root filesystem or change `/usr/local/bin`.
 
 ## Controls (provisional)
 
