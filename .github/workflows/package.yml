@@ -1,0 +1,49 @@
+name: Build test installer
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Fetch and verify R36S ARM64 Ruffle binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --silent --show-error \
+            --output ssf2-r36s/rufflesa \
+            https://raw.githubusercontent.com/Cristiangc67/ruffle-r36s-darkos/main/ruffleEngine/rufflesa
+          # Pin to the exact upstream Git blob that was inspected when the project was created.
+          test "$(git hash-object ssf2-r36s/rufflesa)" = "f954e372d24c11d984fa1c0a596e39eaed6ad3a8" || {
+            echo "Upstream Ruffle runtime changed: review binary before using it." >&2
+            exit 1
+          }
+          file ssf2-r36s/rufflesa
+          readelf -h ssf2-r36s/rufflesa | grep -q AArch64 || {
+            echo "Not a Linux ARM64 executable." >&2
+            exit 1
+          }
+          chmod +x 'Super Smash Flash 2.sh' ssf2-r36s/rufflesa
+      - name: Create SD-card installer ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/ssf2-r36s/game
+          cp 'Super Smash Flash 2.sh' dist/
+          cp ssf2-r36s/rufflesa dist/ssf2-r36s/
+          cp -R ssf2-r36s/keymap dist/ssf2-r36s/
+          cp ssf2-r36s/game/PUT_GAME_FILES_HERE.txt dist/ssf2-r36s/game/
+          (cd dist && zip -r -q ../SSF2-R36S-test.zip .)
+      - name: Upload test package
+        uses: actions/upload-artifact@v4
+        with:
+          name: SSF2-R36S-test
+          path: SSF2-R36S-test.zip
+          if-no-files-found: error
