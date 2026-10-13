@@ -1,0 +1,6 @@
+#!/bin/sh
+# Compatibility shim for R36S-specific Ruffle runtime (requires console_detect).
+# Uses the R36S's fixed 640x480 LCD. Does not change ArkOS system files.
+# The upstream launcher creates a system-wide /usr/local/bin/console_detect stub;
+# we instead supply it locally through PATH.
+printf '%s\n' '640x480'
