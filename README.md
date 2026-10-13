@@ -62,7 +62,26 @@ Measurements on the R36S (897 MB RAM, 768 MiB zram swap):
 
 Audio was disabled for this run; the issue remained unchanged. Low rendering quality is already active, so visual-quality changes alone are unlikely to solve the memory deficit. Blindly increasing swap can produce extreme slowdown and SD wear; **do not enable disk swap automatically**.
 
-**Plan:** Treat SSF2 1.4.0.1 as blocked on this hardware pending verified substantive memory reductions in the Ruffle runtime/game loading path. For a practical next test, obtain the **official SSF2 0.8b** archive from https://www.supersmashflash.com/play/ssf2/downloads/archives/ , inspect the archive layout, and build a **separate legacy-mode launcher**. A community member has reported that 0.8b works on an R36S using AeroFlash, but this is not yet independently verified in this repository: https://www.reddit.com/r/R36S/comments/1vvmyfw/super_smash_flash_2_on_r36s_and_flash_games_o/
+**Plan:** Treat SSF2 1.4.0.1 as blocked on this hardware pending verified substantive memory reductions in the Ruffle runtime/game loading path. Continue profiling/optimizing **the user's requested Beta 1.4.0.1**. A profile of resource sizes is the next experiment. We are **not** falling back to older game versions.
+
+## Development focus: SSF2 Beta 1.4.0.1 ONLY
+
+We are retaining the current 1.4.0.1 game version, **not** downgrading to 0.8b. Earlier versions are not part of this development plan.
+
+The R36S RAM profile makes further blind launcher changes unlikely to help: the 371 original DAT assets consume large amounts of memory as Ruffle loads them, while physical RAM and zram swap approach exhaustion. The game runs until ~31% loading, then receives SIGKILL (137).
+
+### Next step: characterize real asset expansion on macOS
+
+A separate, **read-only** tool is included for the Mac to profile the 1.4.0.1 game assets without uploading or modifying the 900 MB game:
+
+1. In **GitHub Actions**, download the `SSF2-R36S-Analyse-Mac` artifact from the latest successful build.
+2. Unzip the artifact, then unzip `SSF2-R36S-Analyse-Mac.zip`.
+3. Double-click `SSF2-Analyse.command` (you may need to use **right-click → Open** due to macOS security). Python 3 must be installed.
+4. When prompted, select the **original `data` folder** with the `DAT*.ssf` files on your Mac.
+5. Wait for processing. A text-only `SSF2-R36S-resource-report.txt` will appear alongside the `data` folder.
+6. Upload just that report to the conversation. **Do not upload the original game assets.**
+
+The script decompresses one original .ssf file at a time in a streaming fashion, summarizes compressed vs. expanded size and reports the largest resource files. This will help us decide whether a compatible local asset-conversion pipeline could materially reduce memory before proposing any destructive edits. **We have not yet proven that a resource-optimized build will be playable.**
 
 ## Current limitations
 
