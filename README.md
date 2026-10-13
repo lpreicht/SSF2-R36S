@@ -37,6 +37,18 @@ The launcher reports missing DAT numbers without treating them as fatal, runs Ru
 A: attack (P), B: special (O), X/R: grab (U), Y/L: shield (I).
 The third-party R36S Ruffle build reports `Select + A` as the D-pad WASD toggle (needed for SSF2 Player 1), `Select + X` as mouse mode for menus, and `Select + Start` to exit. Buttons and menu interaction still need verification on the device.
 
+## Test build: loading-screen exit 137 (2026-10-13)
+
+The 1.4.0.1 loading screen reached ~30% but Ruffle was killed with exit code 137 (SIGKILL) after ~78 seconds. **This is not proof of OOM.** Logs also showed repeated ALSA underrun errors. To diagnose:
+
+- This experimental build launches with **`--no-audio`** and low graphics quality. Sound is deliberately off for this one test, not removed from the intended final port.
+- `ssf2-r36s/logs/memory.log` samples Ruffle process RSS/peak RAM, swap, and system available RAM every two seconds.
+- `ssf2-r36s/logs/last-run.log` includes the Ruffle exit code and Linux kernel OOM-kill counter before and after.
+- After testing, **send both log files**, and report loading percentage and elapsed time. The game files do not need to be uploaded again.
+- If this build starts but no sound plays, that is expected. If it rejects `--no-audio`, the log should say so, and we can change that flag.
+
+The upstream Ruffle project has open SSF2 loading and performance issues: https://github.com/ruffle-rs/ruffle/issues/21876 and https://github.com/ruffle-rs/ruffle/issues/24032 .
+
 ## Current limitations
 
 Ruffle support for advanced ActionScript 3 and loading 378 external assets is not guaranteed on this device. R36S RAM is about 1 GB, and upstream Ruffle has reported SSF2 memory/performance and rendering problems. There is no confirmed playable frame rate for SSF2 Beta 1.4.0.1 on this hardware.
