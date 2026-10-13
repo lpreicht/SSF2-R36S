@@ -62,6 +62,20 @@ jobs:
           chmod +x dist/ssf2-r36s/bin/console_detect
           cp ssf2-r36s/game/PUT_GAME_FILES_HERE.txt dist/ssf2-r36s/game/
           (cd dist && zip -r -q ../SSF2-R36S-test.zip .)
+      - name: Validate and package read-only macOS asset analyzer
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile tools/mac/analyze_ssf2.py
+          bash -n tools/mac/SSF2-Analyse.command
+          chmod +x tools/mac/SSF2-Analyse.command
+          (cd tools/mac && zip -q -r ../../SSF2-R36S-Analyse-Mac.zip . -x '__pycache__/*')
+      - name: Upload macOS analysis tool
+        uses: actions/upload-artifact@v4
+        with:
+          name: SSF2-R36S-Analyse-Mac
+          path: SSF2-R36S-Analyse-Mac.zip
+          if-no-files-found: error
       - name: Upload test package
         uses: actions/upload-artifact@v4
         with:
