@@ -30,11 +30,30 @@ jobs:
             echo "Not a Linux ARM64 executable." >&2
             exit 1
           }
+          # The upstream ARM binary hardcodes /usr/local/bin/console_detect.
+          # Replace exactly 29 bytes with a relative path to our local shim.
+          # No /usr/local/bin changes and no root remount needed on the device.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("ssf2-r36s/rufflesa")
+          data = p.read_bytes()
+          before = b"/usr/local/bin/console_detect"
+          after  = b"./bin//////////console_detect"
+          assert len(before) == len(after) == 29
+          assert data.count(before) == 1, "Upstream binary layout changed; must review before patch"
+          p.write_bytes(data.replace(before, after))
+          assert p.stat().st_size == len(data)
+          print("Patched Ruffle console_detect path, original binary length preserved.")
+          PY
+          # Verify the patch remains the expected ELF architecture.
+          readelf -h ssf2-r36s/rufflesa | grep -q AArch64
           chmod +x 'Super Smash Flash 2.sh' ssf2-r36s/rufflesa
       - name: Create SD-card installer ZIP
         shell: bash
         run: |
           set -euo pipefail
+          bash -n 'Super Smash Flash 2.sh'
+          sh -n ssf2-r36s/bin/console_detect
           mkdir -p dist/ssf2-r36s/game
           cp 'Super Smash Flash 2.sh' dist/
           cp ssf2-r36s/rufflesa dist/ssf2-r36s/
