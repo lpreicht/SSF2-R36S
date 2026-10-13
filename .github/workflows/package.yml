@@ -39,6 +39,8 @@ jobs:
           cp 'Super Smash Flash 2.sh' dist/
           cp ssf2-r36s/rufflesa dist/ssf2-r36s/
           cp -R ssf2-r36s/keymap dist/ssf2-r36s/
+          cp -R ssf2-r36s/bin dist/ssf2-r36s/
+          chmod +x dist/ssf2-r36s/bin/console_detect
           cp ssf2-r36s/game/PUT_GAME_FILES_HERE.txt dist/ssf2-r36s/game/
           (cd dist && zip -r -q ../SSF2-R36S-test.zip .)
       - name: Upload test package
