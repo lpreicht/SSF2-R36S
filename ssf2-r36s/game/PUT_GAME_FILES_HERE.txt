@@ -1,12 +1,12 @@
-Copy these files from the official SSF2 Beta 1.4.0.1 Portable game:
+From your own official SSF2 Beta 1.4.0.1 Portable download, copy:
 
 SSF2Portable.swf
-data/DAT0.ssf ... data/DAT377.ssf
+data/ (the complete original folder containing the DAT*.ssf files)
 
-Required destination on ArkOS R36S:
-/roms/ports/ssf2-r36s/game/SSF2Portable.swf
-/roms/ports/ssf2-r36s/game/data/DAT0.ssf
-...
-/roms/ports/ssf2-r36s/game/data/DAT377.ssf
+Destination on the R36S SD card:
+EASYROMS/ports/ssf2-r36s/game/SSF2Portable.swf
+EASYROMS/ports/ssf2-r36s/game/data/
 
-Do not rename, convert, or split the DAT files.
+Important: Do not rename, recompress, or invent DAT files.
+Numbered DAT assets may contain gaps. The launcher logs which numbers
+are absent but allows Ruffle to start.
