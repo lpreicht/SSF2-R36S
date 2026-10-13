@@ -45,13 +45,33 @@ run() {
     printf 'ERROR: ARM Ruffle runtime not executable: %s\n' "$BIN"
     return 3
   fi
-  cd "$BASE/game" || return 4
+  # Ruffle looks for custom keymaps relative to its working directory.
+  # Use the engine directory; the game file path is still absolute.
+  cd "$BASE" || return 4
+  # Ruffle's R36S build expects console_detect. Use a local, harmless
+  # 640x480 shim rather than modifying /usr/local/bin or remounting /.
+  if [[ -f "$BASE/bin/console_detect" ]]; then
+    chmod +x "$BASE/bin/console_detect" 2>/dev/null || true
+  fi
+  export PATH="$BASE/bin:$PATH"
+  if ! command -v console_detect >/dev/null 2>&1; then
+    printf 'ERROR: console_detect helper missing. Reinstall updated test package.\n'
+    return 5
+  fi
+  printf 'console_detect: %s\n' "$(command -v console_detect)"
+  printf 'Screen resolution: %s\n' "$(console_detect 2>&1)"
+  printf 'Working directory: %s\n' "$PWD"
+  if [[ -f "keymap/SSF2Portable.cfg" ]]; then
+    printf 'Custom keymap: found\n'
+  else
+    printf 'WARNING: custom keymap missing at %s/keymap/SSF2Portable.cfg\n' "$BASE"
+  fi
   export SDL_GAMECONTROLLERCONFIG='190000004b4800000011000000010000,GO-Super Gamepad,x:b2,a:b1,b:b0,y:b3,back:b12,start:b13,dpleft:b10,dpdown:b9,dpright:b11,dpup:b8,leftshoulder:b4,lefttrigger:b6,rightshoulder:b5,righttrigger:b7,leftstick:b14,rightstick:b15,leftx:a0,lefty:a1,rightx:a2,righty:a3,platform:Linux,'
   export RUST_BACKTRACE=1
   printf 'Starting Ruffle with low quality setting\n'
   "$BIN" "$GAME" -Q low
   status=$?
-  printf '\nRuffle exit code: %s\n' "$status"
+  printf '\nRuffle exit code: %s (does not prove gameplay succeeded)\n' "$status"
   return "$status"
 }
 run >"$LOG" 2>&1
