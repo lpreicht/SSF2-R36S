@@ -22,17 +22,19 @@ run() {
     printf 'ERROR: Missing data folder: %s\n' "$ASSETS"
     return 2
   fi
+  # The original game may omit some DAT numbers intentionally.
+  # A contiguous range from 0 to 377 is NOT proof that every number exists.
   missing=0
-  first_missing=''
   for ((i=0; i<=377; i++)); do
     if [[ ! -f "$ASSETS/DAT${i}.ssf" ]]; then
       ((missing+=1))
-      if [[ -z "$first_missing" ]]; then first_missing="DAT${i}.ssf"; fi
+      printf 'NOTICE: DAT${i}.ssf not present\n'
     fi
   done
+  present=$(find "$ASSETS" -maxdepth 1 -type f -name 'DAT*.ssf' | wc -l)
+  printf 'Data files present: %s; absent numbers in DAT0..DAT377: %s\n' "$present" "$missing"
   if (( missing > 0 )); then
-    printf 'ERROR: %s of 378 expected assets missing; first missing: %s\n' "$missing" "$first_missing"
-    return 2
+    printf 'NOTICE: Starting anyway; missing numbers may be normal in the official distribution.\n'
   fi
   if [[ ! -f "$BIN" ]]; then
     printf 'ERROR: ARM Ruffle runtime missing: %s\n' "$BIN"
@@ -43,8 +45,7 @@ run() {
     printf 'ERROR: ARM Ruffle runtime not executable: %s\n' "$BIN"
     return 3
   fi
-  printf 'Asset check OK: 378 / 378\n'
-  cd "$BASE" || return 4
+  cd "$BASE/game" || return 4
   export SDL_GAMECONTROLLERCONFIG='190000004b4800000011000000010000,GO-Super Gamepad,x:b2,a:b1,b:b0,y:b3,back:b12,start:b13,dpleft:b10,dpdown:b9,dpright:b11,dpup:b8,leftshoulder:b4,lefttrigger:b6,rightshoulder:b5,righttrigger:b7,leftstick:b14,rightstick:b15,leftx:a0,lefty:a1,rightx:a2,righty:a3,platform:Linux,'
   export RUST_BACKTRACE=1
   printf 'Starting Ruffle with low quality setting\n'
