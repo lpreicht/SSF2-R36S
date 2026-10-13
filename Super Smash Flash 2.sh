@@ -68,9 +68,28 @@ run() {
   fi
   export SDL_GAMECONTROLLERCONFIG='190000004b4800000011000000010000,GO-Super Gamepad,x:b2,a:b1,b:b0,y:b3,back:b12,start:b13,dpleft:b10,dpdown:b9,dpright:b11,dpup:b8,leftshoulder:b4,lefttrigger:b6,rightshoulder:b5,righttrigger:b7,leftstick:b14,rightstick:b15,leftx:a0,lefty:a1,rightx:a2,righty:a3,platform:Linux,'
   export RUST_BACKTRACE=1
-  printf 'Starting Ruffle with low quality setting\n'
-  "$BIN" "$GAME" -Q low
+  printf 'Starting Ruffle in SILENT DIAGNOSTIC MODE at low quality\n'
+  printf 'Purpose: isolate repeated ALSA underruns and diagnose possible out-of-memory kill.\n'
+  export MALLOC_ARENA_MAX=1
+  before_oom=$(awk '$1=="oom_kill"{print $2}' /proc/vmstat 2>/dev/null || true)
+  printf 'Kernel oom_kill counter before: %s\n' "${before_oom:-unavailable}"
+  "$BIN" "$GAME" -Q low --no-audio &
+  game_pid=$!
+  printf 'Ruffle PID: %s\n' "$game_pid"
+  bash "$BASE/bin/memory-watch.sh" "$game_pid" "$LOGDIR/memory.log" &
+  watcher_pid=$!
+  wait "$game_pid"
   status=$?
+  kill "$watcher_pid" 2>/dev/null || true
+  wait "$watcher_pid" 2>/dev/null || true
+  after_oom=$(awk '$1=="oom_kill"{print $2}' /proc/vmstat 2>/dev/null || true)
+  printf 'Kernel oom_kill counter after: %s\n' "${after_oom:-unavailable}"
+  if [[ -n "$before_oom" && -n "$after_oom" ]] && (( after_oom > before_oom )); then
+    printf 'DIAGNOSTIC: Kernel oom_kill counter increased by %d (strong evidence of OOM kill).\n' "$((after_oom-before_oom))"
+  fi
+  if (( status == 137 )); then
+    printf 'DIAGNOSTIC: Ruffle was SIGKILLed (exit 137); see logs/memory.log for RAM trend.\n'
+  fi
   printf '\nRuffle exit code: %s (does not prove gameplay succeeded)\n' "$status"
   return "$status"
 }
