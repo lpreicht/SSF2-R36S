@@ -1,0 +1,35 @@
+name: Analyze SSF2 Bitmap Memory (CI Only)
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tools/ci/bitmap_inventory.py'
+      - '.github/workflows/bitmap-inventory.yml'
+permissions:
+  contents: read
+jobs:
+  bitmap-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install analysis dependency
+        run: python3 -m pip install --user --disable-pip-version-check Pillow
+      - name: Compile check
+        run: python3 -m py_compile tools/ci/bitmap_inventory.py
+      - name: Download official SSF2 1.4.0.1 temporarily
+        run: |
+          curl -fL --retry 3 --max-time 1500 -o "$RUNNER_TEMP/game.zip" \
+            https://cdn.supersmashflash.com/ssf2/downloads/fc7d249c/SSF2BetaWindows.v.1.4.0.1.portable.zip
+          test "$(stat -c %s "$RUNNER_TEMP/game.zip")" -gt 100000000
+      - name: Analyze original flash bitmaps without publishing content
+        run: |
+          python3 tools/ci/bitmap_inventory.py "$RUNNER_TEMP/game.zip" "$RUNNER_TEMP/bitmap-report.txt"
+          rm -f "$RUNNER_TEMP/game.zip"
+      - name: Archive numerical report only
+        uses: actions/upload-artifact@v4
+        with:
+          name: SSF2-1.4-bitmap-report
+          path: ${{runner.temp}}/bitmap-report.txt
+          if-no-files-found: error
+          retention-days: 7
