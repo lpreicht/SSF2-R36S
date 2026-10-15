@@ -25,7 +25,7 @@ start = content.index("    let mut reader = Reader::new(&data, version);", func)
 end = content.index("\n}\n", start) + 3
 parse_body = content[start:end]
 assert "Ok(SwfBuf {" in parse_body
-assert content[func:end].count("    let mut reader = Reader::new(&data, version);") == 1
+assert content[func:end].count("    let mut reader = Reader::new(&data, version);") == 2
 existing_func = content[func:start]
 existing_func += "    parse_uncompressed_swf_data(data, compression, version, uncompressed_len)\n}\n"
 owned_func = r"""
