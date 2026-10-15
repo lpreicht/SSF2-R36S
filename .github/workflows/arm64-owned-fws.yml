@@ -52,6 +52,7 @@ jobs:
         working-directory: upstream
         env:
           CARGO_BUILD_JOBS: '2'
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: gcc
         run: cargo build --release --locked -p sdl2test-tb
       - name: Inspect ARM64 Linux executable and ABI
         shell: bash
