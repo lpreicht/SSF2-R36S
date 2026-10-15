@@ -9,7 +9,7 @@ from pathlib import Path
 
 zip_path = Path(sys.argv[1])
 out = Path(sys.argv[2])
-pattern = re.compile(r'(?:^|/)data/(DAT(\d+)\.ssf)
+pattern = re.compile(r'(?:^|/)data/(DAT(\d+)\.ssf)$', re.I)
 print(f'Examining {zip_path.name}: {zip_path.stat().st_size/1048576:.1f} MiB', flush=True)
 with zipfile.ZipFile(zip_path) as z:
     infos = []
