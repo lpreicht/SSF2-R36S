@@ -1,0 +1,61 @@
+name: Package Isolated SSF2 Memory Test
+on:
+  workflow_run:
+    workflows: ["Experimental ARM64 Ruffle (Not Yet Verified on R36S)"]
+    types: [completed]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  package:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download the just-built ARM64 GLES2 runtime
+        uses: actions/download-artifact@v4
+        with:
+          name: ruffle-arm64-gles2-owned-fws-UNTESTED
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: runtime
+      - name: Verify runtime and build isolated test package
+        shell: bash
+        run: |
+          set -euo pipefail
+          BIN=runtime/ruffle-arm64-gles2-owned-fws-UNTESTED
+          test -s "$BIN"
+          file "$BIN"
+          readelf -h "$BIN" | grep -q 'AArch64'
+          bash -n 'Super Smash Flash 2 Memory Test.sh'
+          mkdir -p "package/ssf2-r36s-memory-test/keymap"
+          cp 'Super Smash Flash 2 Memory Test.sh' package/
+          cp "$BIN" package/ssf2-r36s-memory-test/
+          cp ssf2-r36s/bin/memory-watch.sh package/ssf2-r36s-memory-test/
+          cp ssf2-r36s/keymap/SSF2Portable.cfg package/ssf2-r36s-memory-test/keymap/
+          chmod +x 'package/Super Smash Flash 2 Memory Test.sh' package/ssf2-r36s-memory-test/ruffle-arm64-gles2-owned-fws-UNTESTED
+          cat > package/INSTALLIEREN.txt <<'EOF'
+          EXPERIMENTELLER SUPER SMASH FLASH 2 1.4.0.1 SPEICHER-TEST (R36S)
+
+          1. Entpacke die enthaltene SSF2-R36S-Memory-Test.zip.
+          2. Kopiere nur "Super Smash Flash 2 Memory Test.sh" und den Ordner
+             "ssf2-r36s-memory-test" nach EASYROMS/ports/.
+          3. Deinen bisherigen Port und seine 371 DAT-Dateien NICHT veraendern.
+          4. Im R36S-Ports-Menue "Super Smash Flash 2 Memory Test" starten.
+          5. Bei Abbruch diese ZWEI Dateien hochladen:
+             EASYROMS/ports/ssf2-r36s-memory-test/logs/last-run.log
+             EASYROMS/ports/ssf2-r36s-memory-test/logs/memory.log
+
+          ACHTUNG:
+          Diese ARM64-GLES2-Datei wurde noch nie auf dem R36S getestet.
+          Sie kann mit fehlenden Bibliotheken oder schwarzem Bildschirm abbrechen.
+          Der Test aendert keine Systemdateien, kopiert keine Spieldaten
+          und ersetzt deinen bestehenden SSF2-Launcher nicht.
+          EOF
+          (cd package && zip -r -q ../SSF2-R36S-Memory-Test.zip .)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SSF2-R36S-Memory-Test-UNTESTED
+          path: SSF2-R36S-Memory-Test.zip
+          if-no-files-found: error
+          retention-days: 7
