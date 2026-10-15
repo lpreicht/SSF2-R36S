@@ -83,6 +83,14 @@ p=root/"core/src/loader.rs"
 s=p.read_text()
 replaces=[
 (
+"""            && let Ok(data) = extract_swz(data)""",
+"""            && let Ok(data) = extract_swz(&data)"""
+),
+(
+"""                let bitmap = ruffle_render::utils::decode_define_bits_jpeg(data, None)?;""",
+"""                let bitmap = ruffle_render::utils::decode_define_bits_jpeg(&data, None)?;"""
+),
+(
 """                &body,
                 url.to_string(),
                 status,""",
