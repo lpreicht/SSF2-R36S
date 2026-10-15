@@ -12,7 +12,7 @@ permissions:
 jobs:
   arm64-source-build:
     runs-on: ubuntu-24.04-arm
-    container: rust:stable-bullseye
+    container: debian:bullseye
     timeout-minutes: 45
     steps:
       - name: Checkout SSF2 port patch
@@ -30,13 +30,19 @@ jobs:
         run: |
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y \
-            python3 openjdk-11-jdk clang cmake pkg-config libssl-dev \
+            python3 openjdk-11-jdk clang cmake pkg-config libssl-dev curl \
             libasound2-dev libdbus-1-dev libudev-dev libsdl2-dev \
             libegl1-mesa-dev libgles2-mesa-dev libgbm-dev \
             binutils file ca-certificates
           uname -m
           ldd --version | head -n 1
-          rustc --version
+      - name: Install modern Rust toolchain in Debian ARM64 image
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          "$HOME/.cargo/bin/rustc" --version
       - name: Apply FWS zero-additional-copy source patch
         run: python3 ssf2/tools/ci/patch_owned_fws.py upstream
       - name: Compile release ARM64 handheld frontend
