@@ -30,3 +30,16 @@ A meaningful patch must (1) preserve `ByteArray` observable behavior and loaded 
 
 ## No unjustified quick fixes
 Do not silently replace the requested SSF2 Beta 1.4.0.1 with 0.8b; do not suggest another texture-quality toggle as a memory fix; do not claim that adding disk swap yields a playable full game; do not package copyrighted game data.
+
+
+## Bitmap-memory inventory: verified in GitHub Actions
+[CI run with SHA256 bitmap deduplication](https://github.com/lpreicht/SSF2-R36S/actions/runs/38822745052) analyzed all 371 official 1.4.0.1 embedded FWS files, with no unreadable SWF containers.
+
+- 56,018 SWF bitmap tags, 51,082 unique by compressed bitmap content hash, 4,936 repeated instances.
+- Compressed bitmap tag bytes: 321,611,321 total; 288,148,096 unique; 33,463,225 bytes duplicated (~10.4%).
+- RGBA four-bytes-per-pixel *theoretical total*, assuming every decoded bitmap is resident simultaneously: 6,453.08 MiB.
+- Same hypothetical accounting with content deduplication: 5,848.31 MiB (~604.77 MiB / ~9.4% less).
+- **Critical:** These quantities do not measure real allocations. The game can load and dispose assets over time; actual simultaneous texture working set must be profiled at runtime. They are *not* predictions of minimum RAM necessary to play.
+- Deduplicating compressed images would preserve content but is unlikely by itself to solve the 31%-load SIGKILL. Any real improvement requires controlling loading, allocation, or lifetime of bitmaps (and may require changes to game logic).
+
+Current status: **no working full 1.4.0.1 port**. Reproducible upstream Ruffle core source build succeeded. Investigating architecture for streaming/lazy graphics and memory profiling is next; do not distribute an unverified performance build.
