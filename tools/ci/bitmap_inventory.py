@@ -122,6 +122,11 @@ def main():
     total_size = sum(records[k][0] * count for k, count in counts.items())
     duplicate_size = total_size - unique_size
     theoretical_ram = sum(sizes)
+    theoretical_unique = sum(
+        dims[0]*dims[1]*4 for (length, dims) in records.values()
+        if dims and 0 < dims[0] <= 8192 and 0 < dims[1] <= 8192
+    )
+    theoretical_duplicates = theoretical_ram - theoretical_unique
     report = [
         "SSF2 1.4.0.1 — bitmap tag inventory (official game assets; no game data)",
         "All values are theoretical resource sizes, not measured game RAM.",
@@ -135,6 +140,8 @@ def main():
         f"Repeated compressed tag bytes: {duplicate_size:,} ({duplicate_size / max(total_size,1)*100:.1f}%)",
         f"Known-dimension bitmap tags: {len(sizes)}",
         f"Theoretical 4-byte/pixel sum (not live allocation): {theoretical_ram/1048576:.2f} MiB",
+        f"Theoretical unique-content RGBA sum: {theoretical_unique/1048576:.2f} MiB",
+        f"Theoretical duplicate RGBA reduction: {theoretical_duplicates/1048576:.2f} MiB ({theoretical_duplicates/max(theoretical_ram,1)*100:.1f}%)",
         "",
         "Top 30 repeated bitmap tags (hash prefixes only; no game data):",
     ]
