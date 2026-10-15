@@ -28,6 +28,9 @@ jobs:
           persist-credentials: false
       - name: Install native ARM64 build dependencies
         run: |
+          # Debian 11 moved to the archive; normal mirrors now return 404s.
+          sed -i 's|http://deb.debian.org/debian-security|http://archive.debian.org/debian-security|g; s|http://deb.debian.org/debian|http://archive.debian.org/debian|g' /etc/apt/sources.list
+          printf 'Acquire::Check-Valid-Until "false";\n' > /etc/apt/apt.conf.d/99archive
           apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y \
             python3 openjdk-11-jdk clang cmake pkg-config libssl-dev curl \
