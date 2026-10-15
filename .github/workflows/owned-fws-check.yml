@@ -28,7 +28,7 @@ jobs:
       - name: Prepare toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y openjdk-17-jdk pkg-config libssl-dev clang cmake
+          sudo apt-get install -y openjdk-17-jdk pkg-config libssl-dev clang cmake libdbus-1-dev libasound2-dev libsdl2-dev libudev-dev libegl1-mesa-dev libgles2-mesa-dev
       - uses: dtolnay/rust-toolchain@stable
       - name: Syntax-check source patch
         run: python3 -m py_compile ssf2/tools/ci/patch_owned_fws.py
