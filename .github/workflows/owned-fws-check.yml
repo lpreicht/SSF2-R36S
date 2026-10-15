@@ -1,0 +1,51 @@
+name: Ruffle Owned FWS Memory Experiment
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tools/ci/patch_owned_fws.py'
+      - '.github/workflows/owned-fws-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  owned-fws-core-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Checkout SSF2 port repository
+        uses: actions/checkout@v4
+        with:
+          path: ssf2
+      - name: Checkout pinned R36S-compatible Ruffle source
+        uses: actions/checkout@v4
+        with:
+          repository: aweigit/ruffle-miyooflip
+          ref: 2d8383792ad9ca984d14a2787858151ff03e4434
+          path: upstream
+          persist-credentials: false
+      - name: Prepare toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openjdk-17-jdk pkg-config libssl-dev clang cmake
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Syntax-check source patch
+        run: python3 -m py_compile ssf2/tools/ci/patch_owned_fws.py
+      - name: Apply verified owned-SWF patch
+        run: python3 ssf2/tools/ci/patch_owned_fws.py upstream
+      - name: Compile patched core
+        working-directory: upstream
+        env:
+          CARGO_BUILD_JOBS: '2'
+        run: cargo check --locked -p ruffle_core --lib
+      - name: Test patched SWF decoder
+        working-directory: upstream
+        env:
+          CARGO_BUILD_JOBS: '2'
+        run: cargo test --locked -p swf --lib
+      - name: Compile patched portable frontend
+        working-directory: upstream
+        env:
+          CARGO_BUILD_JOBS: '2'
+        run: cargo check --locked -p sdl2test-u
