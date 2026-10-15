@@ -31,7 +31,7 @@ def tags(binary, begin, end, depth=0):
             length, = struct.unpack_from("<I", binary, cursor)
             cursor += 4
         after = cursor + length
-        if after > end or after <= cursor:
+        if after > end or after < cursor:
             return
         if code == 0:
             return
@@ -109,7 +109,7 @@ def main():
                     if len(payload) < 2:
                         continue
                     dimensions = bitmap_dimensions(code, payload)
-                    hashvalue = hashlib.sha256(bytes([code]) + payload[2:]).hexdigest()
+                    hashvalue = hashlib.sha256(bytes([code]) + bytes(payload[2:])).hexdigest()
                     key = f"{code}:{hashvalue}"
                     counts[key] += 1
                     records[key] = (len(payload), dimensions)
