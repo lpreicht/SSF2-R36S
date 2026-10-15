@@ -82,7 +82,7 @@ with zipfile.ZipFile(zip_path) as z:
     lines.extend(['', 'Plausible embedded SWF signatures (first 64KiB of decoded DAT only):',
                   f'DAT files with candidate SWF headers: {len(swf_candidates)}'])
     if swf_candidates:
-        largest = sorted([(index, entry[1][0][2], entry[1][0][1], entry[1][0][0]) for index, entry in swf_candidates],
+        largest = sorted([(index, entry[0][2], entry[0][1], entry[0][0]) for index, entry in swf_candidates],
                          key=lambda x: x[1], reverse=True)
         lines.append('Sum of first reported uncompressed SWF size fields (NOT RAM): ' +
                      str(sum(item[1] for item in largest)/1048576) + ' MiB')
