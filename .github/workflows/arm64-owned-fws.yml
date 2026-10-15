@@ -1,0 +1,66 @@
+name: Experimental ARM64 Ruffle (Not Yet Verified on R36S)
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/arm64-owned-fws.yml'
+      - 'tools/ci/patch_owned_fws.py'
+
+permissions:
+  contents: read
+
+jobs:
+  arm64-source-build:
+    runs-on: ubuntu-24.04-arm
+    container: rust:stable-bullseye
+    timeout-minutes: 45
+    steps:
+      - name: Checkout SSF2 port patch
+        uses: actions/checkout@v4
+        with:
+          path: ssf2
+      - name: Checkout pinned handheld Ruffle fork
+        uses: actions/checkout@v4
+        with:
+          repository: aweigit/ruffle-miyooflip
+          ref: 2d8383792ad9ca984d14a2787858151ff03e4434
+          path: upstream
+          persist-credentials: false
+      - name: Install native ARM64 build dependencies
+        run: |
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            python3 openjdk-11-jdk clang cmake pkg-config libssl-dev \
+            libasound2-dev libdbus-1-dev libudev-dev libsdl2-dev \
+            libegl1-mesa-dev libgles2-mesa-dev libgbm-dev \
+            binutils file ca-certificates
+          uname -m
+          ldd --version | head -n 1
+          rustc --version
+      - name: Apply FWS zero-additional-copy source patch
+        run: python3 ssf2/tools/ci/patch_owned_fws.py upstream
+      - name: Compile release ARM64 handheld frontend
+        working-directory: upstream
+        env:
+          CARGO_BUILD_JOBS: '2'
+        run: cargo build --release --locked -p sdl2test-tb
+      - name: Inspect ARM64 Linux executable and ABI
+        shell: bash
+        run: |
+          set -euo pipefail
+          BIN=upstream/target/release/sdl2test-tb
+          file "$BIN"
+          readelf -h "$BIN" | grep -q AArch64
+          echo "Required shared libraries:"
+          readelf -d "$BIN" | grep NEEDED || true
+          echo "Highest required GLIBC symbol:"
+          objdump -T "$BIN" | grep -o 'GLIBC_[0-9.]*' | sort -V | tail -n 1 || true
+          cp "$BIN" ./ruffle-arm64-owned-fws-UNTESTED
+          chmod +x ruffle-arm64-owned-fws-UNTESTED
+      - name: Save untested ARM64 binary for engineering review only
+        uses: actions/upload-artifact@v4
+        with:
+          name: ruffle-arm64-owned-fws-UNTESTED
+          path: ruffle-arm64-owned-fws-UNTESTED
+          retention-days: 7
+          if-no-files-found: error
