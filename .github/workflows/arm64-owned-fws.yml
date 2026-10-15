@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/arm64-owned-fws.yml'
+      - 'tools/ci/patch_sdl2_r36s_gles.py'
       - 'tools/ci/patch_owned_fws.py'
 
 permissions:
@@ -48,24 +49,26 @@ jobs:
           "$HOME/.cargo/bin/rustc" --version
       - name: Apply FWS zero-additional-copy source patch
         run: python3 ssf2/tools/ci/patch_owned_fws.py upstream
+      - name: Adapt portable SDL frontend to OpenGL ES 2.0
+        run: python3 ssf2/tools/ci/patch_sdl2_r36s_gles.py upstream
       - name: Compile release ARM64 handheld frontend
         working-directory: upstream
         env:
           CARGO_BUILD_JOBS: '2'
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: gcc
-        run: cargo build --release --locked -p sdl2test-tb
+        run: cargo build --release --locked -p sdl2test-u
       - name: Inspect ARM64 Linux executable and ABI
         shell: bash
         run: |
           set -euo pipefail
-          BIN=upstream/target/release/sdl2test-tb
+          BIN=upstream/target/release/sdl2test-u
           file "$BIN"
           readelf -h "$BIN" | grep -q AArch64
           echo "Required shared libraries:"
           readelf -d "$BIN" | grep NEEDED || true
           echo "Highest required GLIBC symbol:"
           objdump -T "$BIN" | grep -o 'GLIBC_[0-9.]*' | sort -V | tail -n 1 || true
-          cp "$BIN" ./ruffle-arm64-owned-fws-UNTESTED
+          cp "$BIN" ./ruffle-arm64-gles2-owned-fws-UNTESTED
           chmod +x ruffle-arm64-owned-fws-UNTESTED
       - name: Save untested ARM64 binary for engineering review only
         uses: actions/upload-artifact@v4
