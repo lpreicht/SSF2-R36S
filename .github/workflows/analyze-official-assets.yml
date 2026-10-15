@@ -1,0 +1,45 @@
+name: Analyze SSF2 1.4.0.1 Assets (No User Download)
+on:
+  push:
+    paths:
+      - '.github/workflows/analyze-official-assets.yml'
+      - 'tools/ci/analyze_assets.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check analysis tool syntax
+        run: python3 -m py_compile tools/ci/analyze_assets.py
+      - name: Download current game from official mirror to temporary runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 3 --retry-delay 4 --connect-timeout 40 --max-time 1500 \
+            --output "$RUNNER_TEMP/SSF2-official.zip" \
+            'https://cdn.supersmashflash.com/ssf2/downloads/fc7d249c/SSF2BetaWindows.v.1.4.0.1.portable.zip'
+          ls -lh "$RUNNER_TEMP/SSF2-official.zip"
+          test "$(stat -c %s "$RUNNER_TEMP/SSF2-official.zip")" -gt 100000000
+      - name: Stream original DAT assets and report only aggregate sizes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/ci/analyze_assets.py \
+            "$RUNNER_TEMP/SSF2-official.zip" \
+            "$RUNNER_TEMP/ssf2-asset-analysis.txt"
+          cat "$RUNNER_TEMP/ssf2-asset-analysis.txt" | head -45
+          rm -f "$RUNNER_TEMP/SSF2-official.zip"
+      - name: Save size-only text report (never the game)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SSF2-original-asset-size-report
+          path: ${{ runner.temp }}/ssf2-asset-analysis.txt
+          if-no-files-found: error
+          retention-days: 7
