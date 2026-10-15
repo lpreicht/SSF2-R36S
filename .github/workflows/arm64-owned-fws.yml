@@ -69,11 +69,11 @@ jobs:
           echo "Highest required GLIBC symbol:"
           objdump -T "$BIN" | grep -o 'GLIBC_[0-9.]*' | sort -V | tail -n 1 || true
           cp "$BIN" ./ruffle-arm64-gles2-owned-fws-UNTESTED
-          chmod +x ruffle-arm64-owned-fws-UNTESTED
+          chmod +x ruffle-arm64-gles2-owned-fws-UNTESTED
       - name: Save untested ARM64 binary for engineering review only
         uses: actions/upload-artifact@v4
         with:
-          name: ruffle-arm64-owned-fws-UNTESTED
-          path: ruffle-arm64-owned-fws-UNTESTED
+          name: ruffle-arm64-gles2-owned-fws-UNTESTED
+          path: ruffle-arm64-gles2-owned-fws-UNTESTED
           retention-days: 7
           if-no-files-found: error
