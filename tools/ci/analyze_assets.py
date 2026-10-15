@@ -3,6 +3,7 @@
 import sys
 import zipfile
 import zlib
+import struct
 import re
 import time
 from pathlib import Path
@@ -22,9 +23,11 @@ with zipfile.ZipFile(zip_path) as z:
     if len(infos) < 100:
         raise RuntimeError('Too few DAT files in downloaded official archive')
     rows = []
+    swf_candidates = []
     start = time.monotonic()
     for n, (index, info) in enumerate(infos, 1):
         expanded = 0
+        prefix = bytearray()
         error = ''
         dec = zlib.decompressobj()
         try:
@@ -37,12 +40,26 @@ with zipfile.ZipFile(zip_path) as z:
                         chunk = dec.decompress(block, 1024 * 1024)
                         block = dec.unconsumed_tail
                         expanded += len(chunk)
+                        if len(prefix) < 65536:
+                            prefix.extend(chunk[:65536 - len(prefix)])
                         if dec.eof:
                             break
             if not dec.eof:
                 error = 'zlib stream incomplete'
         except Exception as exc:
             error = f'{type(exc).__name__}: {exc}'
+        if not error:
+            candidates = []
+            for offset in range(max(0, len(prefix)-8)):
+                sig = bytes(prefix[offset:offset+3])
+                if sig not in (b'FWS', b'CWS', b'ZWS'):
+                    continue
+                version = prefix[offset+3]
+                advertised = struct.unpack_from('<I', prefix, offset+4)[0]
+                if 8 <= version <= 50 and 8 <= advertised <= 200_000_000:
+                    candidates.append((offset, sig.decode('ascii'), advertised))
+            if candidates:
+                swf_candidates.append((index, candidates[:4]))
         rows.append((index, info.file_size, expanded, error))
         if n % 25 == 0:
             print(f'Processed {n}/{len(infos)} in {time.monotonic()-start:.0f}s', flush=True)
@@ -62,6 +79,15 @@ with zipfile.ZipFile(zip_path) as z:
     ]
     for i, c, e, error in sorted(good, key=lambda r:r[2], reverse=True)[:30]:
         lines.append(f'DAT{i}.ssf: stored={c/1048576:.2f} MiB -> decoded={e/1048576:.2f} MiB')
+    lines.extend(['', 'Plausible embedded SWF signatures (first 64KiB of decoded DAT only):',
+                  f'DAT files with candidate SWF headers: {len(swf_candidates)}'])
+    if swf_candidates:
+        largest = sorted([(index, entry[1][0][2], entry[1][0][1], entry[1][0][0]) for index, entry in swf_candidates],
+                         key=lambda x: x[1], reverse=True)
+        lines.append('Sum of first reported uncompressed SWF size fields (NOT RAM): ' +
+                     str(sum(item[1] for item in largest)/1048576) + ' MiB')
+        for index, size, sig, offset in largest[:30]:
+            lines.append(f'DAT{index}.ssf at offset {offset}: {sig} advertised length {size/1048576:.2f} MiB')
     lines.extend(['', 'Errors:'])
     for i, c, e, error in rows:
         if error:
