@@ -1,0 +1,35 @@
+name: Ruffle ARM Port Development Baseline
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/ruffle-core-baseline.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-ruffle-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact R36S Ruffle upstream source
+        uses: actions/checkout@v4
+        with:
+          repository: aweigit/ruffle-miyooflip
+          ref: 2d8383792ad9ca984d14a2787858151ff03e4434
+          path: upstream
+          persist-credentials: false
+      - name: Install dependencies for Ruffle core
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openjdk-17-jdk pkg-config libssl-dev clang cmake
+      - name: Install Rust (2024 edition-compatible)
+        uses: dtolnay/rust-toolchain@stable
+      - name: Check unmodified Ruffle core first
+        working-directory: upstream
+        env:
+          CARGO_BUILD_JOBS: '2'
+        run: |
+          cargo --version
+          cargo check --locked -p ruffle_core --lib
