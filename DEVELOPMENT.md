@@ -43,3 +43,23 @@ Do not silently replace the requested SSF2 Beta 1.4.0.1 with 0.8b; do not sugges
 - Deduplicating compressed images would preserve content but is unlikely by itself to solve the 31%-load SIGKILL. Any real improvement requires controlling loading, allocation, or lifetime of bitmaps (and may require changes to game logic).
 
 Current status: **no working full 1.4.0.1 port**. Reproducible upstream Ruffle core source build succeeded. Investigating architecture for streaming/lazy graphics and memory profiling is next; do not distribute an unverified performance build.
+
+## 2026-10-16: real Ruffle source modification
+
+A reproducible source patch is now in `tools/ci/patch_owned_fws.py`. It is applied to the pinned handheld Ruffle fork, not to the already packaged binary.
+
+- The original AVM2 `ByteArray` remains intact to preserve ActionScript semantics.
+- The C/Rust loader transfers its already-copied `Vec<u8>` into `SwfMovieData`.
+- For uncompressed FWS streams (all 371 original SSF2 DAT archives contain FWS headers), the SWF decoder removes the 8-byte header in the same allocation instead of allocating another full-size SWF buffer.
+- CWS/ZWS retain the existing decoder behavior.
+- **GitHub source test:** [Owned FWS Memory Experiment](https://github.com/lpreicht/SSF2-R36S/actions/runs/38824002789) passed patched core compile, existing SWF decoder tests, and desktop frontend compile. This verifies source-level compatibility, **not a RAM benchmark or hardware compatibility**.
+- **ARM64 native build attempt:** [ARM64 CI](https://github.com/lpreicht/SSF2-R36S/actions/runs/38824452898) uses a Debian 11 (glibc 2.31) ARM64 container to reduce ABI demands. A successful build would still be **untested on RK3326 and ArkOS**. No auto-install or released port is authorized by a mere compilation.
+
+Remaining to prove:
+1. ARM64 release binary compiles and has dependencies compatible with the R36S's ArkOS libraries and EGL/DRM.
+2. R36S can load the patched executable and game without regression.
+3. `memory.log` shows a real memory reduction and loading proceeds beyond 31%.
+4. Only then consider optimizing further or promoting to official installer.
+
+Do not confuse the existing `SSF2-R36S-test` workflow's successful builds with this modified runtime: **the original installer still packages the old precompiled Ruffle binary**.
+
