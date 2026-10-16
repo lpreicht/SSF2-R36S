@@ -35,3 +35,22 @@ The new test menu item is `Super Smash Flash 2 Disk Test`. It sits alongside the
 
 **Important:** File-backed pages still use RAM when accessed. Mapping alone cannot guarantee a lower active working set or playable speed on the R36S.
 
+
+## On-device result: 37% loading, still OOM (2026-10-16)
+
+The user tested the isolated disk cache build and visually observed the loading screen reach **37%**, versus 31% in the preceding tests.
+
+Real ArkOS logs:
+- Started 2026-10-16T00:51:23Z; last sample at 00:52:26Z (~63 seconds).
+- GLES2 initialized; SWF version 40 (640×360, 30 FPS) loaded; controller recognized.
+- Peak `VmHWM 803,600 KiB` (~784.8 MiB), versus prior owned-FWS test `791,860 KiB` (~773.3 MiB).
+- Peak `VmSwap 691,620 KiB` (~675.4 MiB), versus prior ~678.4 MiB. `SwapFree` reached exactly **0 KiB**.
+- Final exit: 137 / SIGKILL, strongly consistent with memory exhaustion. The OOM-killer was not directly logged.
+- Prior `last-run.log` contains **no** `Disk-backed SWF mapped` lines, so whether any mmap succeeded remains **unconfirmed**. The old patch used `tracing::info!`, whereas the frontend initializes `env_logger` and does not necessarily have a tracing subscriber.
+
+Engineering reaction:
+- Do **not** infer that 37% means the cache demonstrably reduced RAM, because the memory measurements show no material benefit.
+- New source patch logs each mmap success/failure directly on stderr, which the launcher collects.
+- A dedicated `memory-watch-disk.sh` samples `RssAnon`, `RssFile`, `RssShmem`, and process `write_bytes` / `read_bytes`, besides existing RSS and zram swap.
+- Only after confirming real file mappings and their size should we consider more disk-related changes. Never automatically increase cache budget or put original game files at risk.
+
