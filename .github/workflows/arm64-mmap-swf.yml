@@ -1,0 +1,82 @@
+name: Experimental ARM64 SWF Disk Cache (UNTESTED)
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/arm64-owned-fws.yml'
+      - 'tools/ci/patch_sdl2_r36s_gles.py'
+      - 'tools/ci/patch_owned_fws.py'
+      - 'tools/ci/patch_mmap_swf.py'
+
+permissions:
+  contents: read
+
+jobs:
+  arm64-source-build:
+    runs-on: ubuntu-24.04-arm
+    container: debian:bullseye
+    timeout-minutes: 45
+    steps:
+      - name: Checkout SSF2 port patch
+        uses: actions/checkout@v4
+        with:
+          path: ssf2
+      - name: Checkout pinned handheld Ruffle fork
+        uses: actions/checkout@v4
+        with:
+          repository: aweigit/ruffle-miyooflip
+          ref: 2d8383792ad9ca984d14a2787858151ff03e4434
+          path: upstream
+          persist-credentials: false
+      - name: Install native ARM64 build dependencies
+        run: |
+          # Debian 11 moved to the archive; normal mirrors now return 404s.
+          sed -i 's|http://deb.debian.org/debian-security|http://archive.debian.org/debian-security|g; s|http://deb.debian.org/debian|http://archive.debian.org/debian|g' /etc/apt/sources.list
+          printf 'Acquire::Check-Valid-Until "false";\n' > /etc/apt/apt.conf.d/99archive
+          apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            python3 openjdk-11-jdk clang cmake pkg-config libssl-dev curl \
+            libasound2-dev libdbus-1-dev libudev-dev libsdl2-dev \
+            libegl1-mesa-dev libgles2-mesa-dev libgbm-dev \
+            binutils file ca-certificates
+          uname -m
+          ldd --version | head -n 1
+      - name: Install modern Rust toolchain in Debian ARM64 image
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+          "$HOME/.cargo/bin/rustc" --version
+      - name: Apply FWS zero-additional-copy source patch
+        run: python3 ssf2/tools/ci/patch_owned_fws.py upstream
+      - name: Apply opt-in mapped SWF data patch
+        run: python3 ssf2/tools/ci/patch_mmap_swf.py upstream
+      - name: Adapt portable SDL frontend to OpenGL ES 2.0
+        run: python3 ssf2/tools/ci/patch_sdl2_r36s_gles.py upstream
+      - name: Compile release ARM64 handheld frontend
+        working-directory: upstream
+        env:
+          CARGO_BUILD_JOBS: '2'
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: gcc
+        run: cargo build --release -p sdl2test-u --features ruffle_core/disk-mmap-experiment
+      - name: Inspect ARM64 Linux executable and ABI
+        shell: bash
+        run: |
+          set -euo pipefail
+          BIN=upstream/target/release/sdl2test-u
+          file "$BIN"
+          readelf -h "$BIN" | grep -q AArch64
+          echo "Required shared libraries:"
+          readelf -d "$BIN" | grep NEEDED || true
+          echo "Highest required GLIBC symbol:"
+          objdump -T "$BIN" | grep -o 'GLIBC_[0-9.]*' | sort -V | tail -n 1 || true
+          cp "$BIN" ./ruffle-arm64-gles2-diskcache-UNTESTED
+          chmod +x ruffle-arm64-gles2-diskcache-UNTESTED
+      - name: Save untested ARM64 binary for engineering review only
+        uses: actions/upload-artifact@v4
+        with:
+          name: ruffle-arm64-gles2-diskcache-UNTESTED
+          path: ruffle-arm64-gles2-diskcache-UNTESTED
+          retention-days: 7
+          if-no-files-found: error
