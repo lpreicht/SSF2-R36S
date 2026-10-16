@@ -63,3 +63,19 @@ Remaining to prove:
 
 Do not confuse the existing `SSF2-R36S-test` workflow's successful builds with this modified runtime: **the original installer still packages the old precompiled Ruffle binary**.
 
+
+## 2026-10-16: actual R36S test of ARM64 GLES2 owned-FWS build
+
+The user tested the **new** ARM64/SDL2 GLES2 runtime built by [ARM64 CI run](https://github.com/lpreicht/SSF2-R36S/actions/runs/38826161926), installed in an isolated side-by-side launcher from [package run](https://github.com/lpreicht/SSF2-R36S/actions/runs/38826644080).
+
+**Observed on real R36S:**
+- `ldd` resolves all required shared libraries on ArkOS (kernel 4.4.189, AArch64).
+- OpenGL ES (Glow) renderer initializes with low quality; root SWF version 40 loads at 640x360, 30 FPS; Controller 0 is detected.
+- `Loader.loadBytes` is exercised (multiple `loader_url:` messages).
+- After ~85 seconds (00:05:59–00:07:24 UTC) Ruffle is SIGKILLed, exit **137**. New log has no percent indicator, so do **not** claim 31% in this test without visual confirmation.
+- Peak `VmHWM = 791,860 KiB` (773.3 MiB); swap `VmSwap = 694,632 KiB` (678.4 MiB); min `SwapFree = 1,356 KiB`. Only ~17.5 MiB `MemAvailable` just before exit. Then available memory/swap jumps, consistent with process killed.
+- No explicit kernel OOM kill line; OOM is **strongly indicated**, not individually proven.
+- Earlier baseline ~789 MiB resident / ~675 MiB swap as reported; metrics are close, **no demonstrated material RAM improvement**. Owned-FWS change is not an adequate fix for this game.
+
+**Engineering consequence:** Stop promoting zero-copy FWS as a solution; do not ship another identical test. Next meaningful design research must address the retained working set (original AVM2 ByteArrays, Ruffle movie buffers / parsed SWF ownership, bitmap data lifetime), potentially opt-in disk-backed memory mapping of immutable loaded SWF bytes or much more aggressive game-resource changes. Investigate **API semantics, read frequency, file-system support, and swap pressure** before implementing. Game playability on the RK3326/1GB R36S remains unconfirmed.
+
