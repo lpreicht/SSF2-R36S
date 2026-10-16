@@ -1,0 +1,64 @@
+name: Package Isolated SSF2 RAM Probe
+on:
+  workflow_run:
+    workflows: ["Experimental ARM64 SSF2 RAM Attribution Probe"]
+    types: [completed]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  package:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download the just-built ARM64 GLES2 runtime
+        uses: actions/download-artifact@v4
+        with:
+          name: ruffle-arm64-ramprobe-UNTESTED
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: runtime
+      - name: Verify runtime and build isolated test package
+        shell: bash
+        run: |
+          set -euo pipefail
+          BIN=runtime/ruffle-arm64-ramprobe-UNTESTED
+          test -s "$BIN"
+          file "$BIN"
+          readelf -h "$BIN" | grep -q 'AArch64'
+          bash -n 'Super Smash Flash 2 RAM Probe.sh'
+          mkdir -p "package/ssf2-r36s-ram-probe/keymap"
+          cp 'Super Smash Flash 2 RAM Probe.sh' package/
+          cp "$BIN" package/ssf2-r36s-ram-probe/
+          cp ssf2-r36s/bin/memory-watch.sh package/ssf2-r36s-ram-probe/memory-watch.sh
+          cp ssf2-r36s/keymap/SSF2Portable.cfg package/ssf2-r36s-ram-probe/keymap/
+          chmod +x 'package/Super Smash Flash 2 RAM Probe.sh' package/ssf2-r36s-ram-probe/ruffle-arm64-ramprobe-UNTESTED
+          cat > package/INSTALLIEREN.txt <<'EOF'
+          SUPER SMASH FLASH 2 BETA 1.4.0.1 RAM-ANALYSE FÜR R36S
+
+          Mit dieser Version werden GROSSE ActionScript ByteArrays, entpackte
+          Grafik-Pixeldaten und SWF-Bilddateien im Log kategorisiert.
+          Keine SD-Cache-Dateien, keine Systemaenderungen und keine neuen Spieldateien.
+
+          1. Entpacke die beiden ZIP-Ebenen.
+          2. Kopiere "Super Smash Flash 2 RAM Probe.sh" und
+             den Ordner "ssf2-r36s-ram-probe" nach EASYROMS/ports/.
+          3. Den bisherigen Port und seine DAT-Dateien NICHT veraendern.
+          4. Unter Ports "Super Smash Flash 2 RAM Probe" EINMAL starten.
+          5. Nach Abbruch hochladen:
+             EASYROMS/ports/ssf2-r36s-ram-probe/logs/last-run.log
+             EASYROMS/ports/ssf2-r36s-ram-probe/logs/memory.log
+
+          Hinweis: Die Werte unter [SSF2-RAM] beschreiben kumulativ erkannte
+          Zuweisungsereignisse, NICHT den jeweils noch belegten RAM.
+          Wir vergleichen sie mit dem gleichzeitig gemessenen Ruffle RSS/Swap.
+          Der Test ist experimentell und garantiert keinen Start des Spiels.
+          EOF
+          (cd package && zip -r -q ../SSF2-R36S-RAM-Probe.zip .)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SSF2-R36S-RAM-Probe-UNTESTED
+          path: SSF2-R36S-RAM-Probe.zip
+          if-no-files-found: error
+          retention-days: 7
