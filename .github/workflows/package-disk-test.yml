@@ -1,0 +1,70 @@
+name: Package Isolated SSF2 Disk Cache Test
+on:
+  workflow_run:
+    workflows: ["Experimental ARM64 SWF Disk Cache (UNTESTED)"]
+    types: [completed]
+permissions:
+  contents: read
+  actions: read
+jobs:
+  package:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - name: Download the just-built ARM64 GLES2 runtime
+        uses: actions/download-artifact@v4
+        with:
+          name: ruffle-arm64-gles2-diskcache-UNTESTED
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: runtime
+      - name: Verify runtime and build isolated test package
+        shell: bash
+        run: |
+          set -euo pipefail
+          BIN=runtime/ruffle-arm64-gles2-diskcache-UNTESTED
+          test -s "$BIN"
+          file "$BIN"
+          readelf -h "$BIN" | grep -q 'AArch64'
+          bash -n 'Super Smash Flash 2 Disk Test.sh'
+          mkdir -p "package/ssf2-r36s-disk-test/keymap"
+          cp 'Super Smash Flash 2 Disk Test.sh' package/
+          cp "$BIN" package/ssf2-r36s-disk-test/
+          cp ssf2-r36s/bin/memory-watch.sh package/ssf2-r36s-disk-test/
+          cp ssf2-r36s/keymap/SSF2Portable.cfg package/ssf2-r36s-disk-test/keymap/
+          mkdir -p package/ssf2-r36s-disk-test/cache
+          touch package/ssf2-r36s-disk-test/cache/.keep
+          chmod +x 'package/Super Smash Flash 2 Disk Test.sh' package/ssf2-r36s-disk-test/ruffle-arm64-gles2-diskcache-UNTESTED
+          cat > package/INSTALLIEREN.txt <<'EOF'
+          EXPERIMENTELLER SUPER SMASH FLASH 2 1.4.0.1 SD-CACHE-TEST (R36S)
+
+          WICHTIG: Die SD-Karte braucht mindestens 2 GiB FREIEN SPEICHER.
+          Dieser Test kann beim Start bis zu 1 GiB auf die SD-Karte schreiben!
+          Es kann SEHR LANGSAM werden und die Karte durch Schreiblast belasten.
+          Er verwendet nur temporaere Dateien, die beim Beenden verschwinden.
+          
+          1. Entpacke die enthaltene SSF2-R36S-Disk-Test.zip.
+          2. Kopiere nur "Super Smash Flash 2 Disk Test.sh" und den Ordner
+             "ssf2-r36s-disk-test" nach EASYROMS/ports/.
+          3. Deinen bisherigen Port und seine 371 DAT-Dateien NICHT veraendern.
+          4. Im R36S-Ports-Menue "Super Smash Flash 2 Disk Test" starten.
+          5. Bei Abbruch diese ZWEI Dateien hochladen:
+             EASYROMS/ports/ssf2-r36s-disk-test/logs/last-run.log
+             EASYROMS/ports/ssf2-r36s-disk-test/logs/memory.log
+
+          ACHTUNG:
+          Diese ARM64-GLES2-Datei wurde noch nie auf dem R36S getestet.
+          Sie kann mit fehlenden Bibliotheken oder schwarzem Bildschirm abbrechen.
+          Der Test aendert keine Systemdateien, kopiert keine Spieldaten
+          und ersetzt deinen bestehenden SSF2-Launcher nicht.
+          EOF
+          (cd package && zip -r -q ../SSF2-R36S-Disk-Test.zip .)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SSF2-R36S-Disk-Test-UNTESTED
+          path: SSF2-R36S-Disk-Test.zip
+          if-no-files-found: error
+          retention-days: 7
