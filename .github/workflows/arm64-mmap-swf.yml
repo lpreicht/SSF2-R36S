@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - '.github/workflows/arm64-owned-fws.yml'
+      - '.github/workflows/arm64-mmap-swf.yml'
       - 'tools/ci/patch_sdl2_r36s_gles.py'
       - 'tools/ci/patch_owned_fws.py'
       - 'tools/ci/patch_mmap_swf.py'
