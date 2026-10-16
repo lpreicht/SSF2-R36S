@@ -31,7 +31,7 @@ jobs:
           mkdir -p "package/ssf2-r36s-disk-test/keymap"
           cp 'Super Smash Flash 2 Disk Test.sh' package/
           cp "$BIN" package/ssf2-r36s-disk-test/
-          cp ssf2-r36s/bin/memory-watch.sh package/ssf2-r36s-disk-test/
+          cp tools/ci/memory-watch-disk.sh package/ssf2-r36s-disk-test/memory-watch.sh
           cp ssf2-r36s/keymap/SSF2Portable.cfg package/ssf2-r36s-disk-test/keymap/
           mkdir -p package/ssf2-r36s-disk-test/cache
           touch package/ssf2-r36s-disk-test/cache/.keep
