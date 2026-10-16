@@ -25,5 +25,13 @@ The first optimized ARM64 GLES2 build started SSF2 on a real R36S, but after abo
 4. Tell the user before installation that it may write **up to ~1 GiB during each start**, temporarily consume space, slow down drastically, and wear the SD card.
 5. Collect `last-run.log` and `memory.log` from the separate test to measure actual improvement. Never claim it will reach 100% loading without that result.
 
+## Build status (2026-10-16)
+
+- [Source-level compile and unit tests: PASSED](https://github.com/lpreicht/SSF2-R36S/actions/runs/38830752904)
+- [Native ARM64 GLES2 disk-backed Ruffle: PASSED](https://github.com/lpreicht/SSF2-R36S/actions/runs/38830752755) (build only; not verified to execute on ArkOS)
+- [Isolated SD-card test ZIP: PASSED](https://github.com/lpreicht/SSF2-R36S/actions/runs/38831295062), artifact `SSF2-R36S-Disk-Test-UNTESTED`.
+
+The new test menu item is `Super Smash Flash 2 Disk Test`. It sits alongside the existing port, uses the existing `ssf2-r36s/game/` files, and refuses to enable disk cache if the filesystem reports less than 2 GiB free. No sound in diagnostic mode. Real-device memory results are pending.
+
 **Important:** File-backed pages still use RAM when accessed. Mapping alone cannot guarantee a lower active working set or playable speed on the R36S.
 
