@@ -1,0 +1,48 @@
+name: Check SSF2 RAM Attribution Probe
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/check-ram-probe.yml'
+      - 'tools/ci/patch_ram_probe.py'
+permissions:
+  contents: read
+jobs:
+  validate-probes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ssf2
+      - uses: actions/checkout@v4
+        with:
+          repository: aweigit/ruffle-miyooflip
+          ref: 2d8383792ad9ca984d14a2787858151ff03e4434
+          path: upstream
+          persist-credentials: false
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openjdk-17-jdk clang cmake pkg-config libssl-dev libdbus-1-dev libasound2-dev libsdl2-dev libudev-dev libegl1-mesa-dev libgles2-mesa-dev
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Apply source probes to pinned Ruffle
+        run: |
+          python3 -m py_compile ssf2/tools/ci/patch_ram_probe.py
+          python3 ssf2/tools/ci/patch_owned_fws.py upstream
+          python3 ssf2/tools/ci/patch_ram_probe.py upstream
+      - name: Check modified Ruffle core
+        working-directory: upstream
+        env:
+          CARGO_BUILD_JOBS: '2'
+        run: cargo check --locked -p ruffle_core --lib
+      - name: Test SWF core with probes enabled
+        working-directory: upstream
+        env:
+          CARGO_BUILD_JOBS: '2'
+        run: cargo test --locked -p swf --lib
+      - name: Check modified portable Ruffle frontend
+        working-directory: upstream
+        env:
+          CARGO_BUILD_JOBS: '2'
+        run: cargo check --locked -p sdl2test-u
