@@ -136,6 +136,7 @@ for old,new,expected in [
     if n!=expected:
         raise RuntimeError(f"{path}: unexpected {n} occurrences, need {expected}, anchor={old!r}")
     s=s.replace(old,new)
+s=s.replace("self.data.len()", "self.data.as_ref().len()")
 p.write_text(s)
 print("Patched",path)
 print("Disk-backed SWF buffers: opt-in only, 1 GiB cumulative limit, conservative heap fallback.")
