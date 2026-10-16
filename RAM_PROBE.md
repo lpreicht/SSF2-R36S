@@ -27,7 +27,12 @@ The pinned Ruffle fork already lazily decodes embedded bitmap characters, theref
 ## Build status
 
 - [Source check and SWF tests](https://github.com/lpreicht/SSF2-R36S/actions/runs/38834650780): **passed**.
-- [ARM64 source build](https://github.com/lpreicht/SSF2-R36S/actions/runs/38834712479): started; its result must be checked separately.
+- [Native ARM64 source build](https://github.com/lpreicht/SSF2-R36S/actions/runs/38834712479): **passed**.
+- [Isolated diagnostic ZIP](https://github.com/lpreicht/SSF2-R36S/actions/runs/38835172347): **passed**, artifact `SSF2-R36S-RAM-Probe-UNTESTED` (original game assets are NOT bundled).
 - The standalone test uses the alternate `Super Smash Flash 2 RAM Probe.sh` launcher and folder `ssf2-r36s-ram-probe`. No SD-backed SWF cache or extra swap is used.
 
 Even a successful ARM64 build does **not** establish that the full game fits in the R36S's 1 GiB RAM.
+
+## Device test pending
+
+The ARM64 binary is not yet verified on the R36S. Copy `Super Smash Flash 2 RAM Probe.sh` and `ssf2-r36s-ram-probe/` to EASYROMS/ports/. The launcher looks up the existing game at `ssf2-r36s/game/`, disables the disk-backed SWF cache, runs the unmodified original game at low quality without sound, and logs cumulative allocation events and process memory. After ONE failed load, return `ssf2-r36s-ram-probe/logs/last-run.log` and `memory.log` together with the observed loading percentage. **Do not infer runtime fixes from a successful compile.**
