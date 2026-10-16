@@ -1,0 +1,29 @@
+# Experimental disk-backed SWF memory for SSF2 Beta 1.4.0.1
+
+**Status:** source-level prototype, not a verified playable R36S port.
+
+## Why the previous build still crashed
+
+The first optimized ARM64 GLES2 build started SSF2 on a real R36S, but after about 85 seconds its resident RSS reached ~773 MiB and its zram swap use reached ~678 MiB. It was killed with exit code 137. Saving a single FWS memory copy was not enough.
+
+## Prototype design
+
+- New source patch: `tools/ci/patch_mmap_swf.py`, applied **after** `tools/ci/patch_owned_fws.py` to the exact pinned Ruffle fork.
+- Feature: `ruffle_common/disk-mmap-experiment`, forwarded through `ruffle_core/disk-mmap-experiment`.
+- **Off by default.** Even a build containing this feature never writes a SWF cache unless `SSF2_MMAP_CACHE_DIR` points to an existing writable folder.
+- Only immutable SWF movie bytes of at least 128 KiB can be redirected to an anonymous file and read-only memory map.
+- Hard 1 GiB cumulative per-process file-backed budget; any error causes the original in-memory storage to be kept for that resource. Original game DAT and SWF files are not modified.
+- The temporary files are unlinked on Linux after creation. Their occupied disk blocks are released once the mapping/process is gone, including after a crash.
+- The code flushes file writes before replacing the RAM buffer. This can be **very slow**, and the amount of data written may approach 1 GiB per startup.
+- The separate AVM2 `ByteArray` buffers and decoded GPU bitmaps are **not** affected by this prototype. Real RAM reduction is unknown.
+
+## Safety gates before a user test
+
+1. Source-level Rust compile and mapping tests must succeed in GitHub CI.
+2. Compile a separate ARM64/R36S GLES2 artifact. Keep the existing working port unchanged.
+3. Test launcher must require **at least 2 GiB free on the actual game SD-card partition** before opting into disk backing, otherwise stop without disk writes.
+4. Tell the user before installation that it may write **up to ~1 GiB during each start**, temporarily consume space, slow down drastically, and wear the SD card.
+5. Collect `last-run.log` and `memory.log` from the separate test to measure actual improvement. Never claim it will reach 100% loading without that result.
+
+**Important:** File-backed pages still use RAM when accessed. Mapping alone cannot guarantee a lower active working set or playable speed on the R36S.
+
