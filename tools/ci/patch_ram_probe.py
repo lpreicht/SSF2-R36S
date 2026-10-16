@@ -16,7 +16,6 @@ def edit(path, old, new, n=1):
     p.write_text(s.replace(old,new,n))
     print("instrumented",path,old[:65])
 
-helper=String.raw if False else None
 module=r'''//! SSF2 allocation-attribution experiments.
  //! These are cumulative observed creation/growth events, NOT live memory.
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -97,7 +96,12 @@ edit(path,"""    pub fn set_length(&mut self, new_len: usize) {
 edit(path,"""        if self.len() < (item + 1) {
             self.bytes.resize(item + 1, 0)
         }""","""        if self.len() < (item + 1) {
-            self.set_length(item + 1);
+            let old_capacity = self.bytes.capacity();
+            self.bytes.resize(item + 1, 0);
+            crate::memory_probe::record(
+                crate::memory_probe::Kind::ByteArrayGrow,
+                self.bytes.capacity().saturating_sub(old_capacity),
+            );
         }""")
 edit(path,"""    pub fn swap_storage_with(&mut self, new_data: &mut Vec<u8>) {
         self.position.set(0);""","""    pub fn swap_storage_with(&mut self, new_data: &mut Vec<u8>) {
