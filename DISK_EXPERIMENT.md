@@ -54,3 +54,10 @@ Engineering reaction:
 - A dedicated `memory-watch-disk.sh` samples `RssAnon`, `RssFile`, `RssShmem`, and process `write_bytes` / `read_bytes`, besides existing RSS and zram swap.
 - Only after confirming real file mappings and their size should we consider more disk-related changes. Never automatically increase cache budget or put original game files at risk.
 
+
+## Diagnostics package built after the 37% test
+
+The updated diagnostic-only package was built successfully by [GitHub Actions run #38832786630](https://github.com/lpreicht/SSF2-R36S/actions/runs/38832786630). Artifact: `SSF2-R36S-Disk-Test-UNTESTED`.
+
+It changes **only diagnostic visibility**: the patched ARM64 runtime writes mmap success/failure messages directly to stderr (captured in `last-run.log`), and the included monitor logs anonymous vs file-backed RSS and per-process I/O in `memory.log`. It does **not** enlarge the 1 GiB disk cache or claim to fix OOM. Source compile/tests and ARM64 release build passed CI; actual benefit is unverified. A single on-device retest (with explicit SD write warning) is needed only if diagnosing whether disk cache actually ran.
+
