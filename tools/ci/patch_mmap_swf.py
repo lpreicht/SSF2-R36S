@@ -87,12 +87,21 @@ impl SwfStorage {
                         })();
                         match result {
                             Ok(mapped) => {
-                                tracing::info!("Disk-backed SWF mapped: {} bytes", len);
+                                // This frontend initializes env_logger, not a tracing subscriber.
+                                // Use stderr for observable per-resource diagnostics on ArkOS.
+                                eprintln!(
+                                    "[SSF2-CACHE] mapped {} bytes; cumulative reserved {} bytes",
+                                    len,
+                                    RESERVED.load(Ordering::SeqCst)
+                                );
                                 return Self::Mapped(std::sync::Arc::new(mapped));
                             },
                             Err(error) => {
                                 RESERVED.fetch_sub(len, Ordering::SeqCst);
-                                tracing::warn!("SWF disk cache disabled for resource: {}", error);
+                                eprintln!(
+                                    "[SSF2-CACHE] failed for {} bytes: {}",
+                                    len, error
+                                );
                             }
                         }
                     }
