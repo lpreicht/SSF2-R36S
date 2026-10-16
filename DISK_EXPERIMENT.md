@@ -61,3 +61,19 @@ The updated diagnostic-only package was built successfully by [GitHub Actions ru
 
 It changes **only diagnostic visibility**: the patched ARM64 runtime writes mmap success/failure messages directly to stderr (captured in `last-run.log`), and the included monitor logs anonymous vs file-backed RSS and per-process I/O in `memory.log`. It does **not** enlarge the 1 GiB disk cache or claim to fix OOM. Source compile/tests and ARM64 release build passed CI; actual benefit is unverified. A single on-device retest (with explicit SD write warning) is needed only if diagnosing whether disk cache actually ran.
 
+
+## Confirmed second 37% test: cache active, no material RAM relief
+
+A second hardware test on **2026-10-16 01:02:56–01:04:37 UTC** again stopped visually at **37%** and exited **137**.
+
+This time the instrumented launcher explicitly confirmed **11 successful file-backed SWF maps** totaling **68,974,544 bytes (65.78 MiB)**. This is only **6.42% of the existing 1 GiB cumulative cache budget**, so raising that budget cannot address the bottleneck without changing which data is eligible for the cache.
+
+Memory watcher results:
+- VmHWM **808,340 KiB ≈ 789.4 MiB**; VmSwap **692,280 KiB ≈ 676.1 MiB**.
+- System SwapFree fell to **0 KiB**, MemAvailable about **14 MiB**, followed by SIGKILL exit code 137.
+- `RssAnon`/`RssFile`/`RssShmem` all reported 0 because these entries were not exposed by the old Linux 4.4 kernel's `/proc/<pid>/status`; **not** because true file-backed RSS is zero.
+- `write_bytes` / `read_bytes` remained blank (unreadable/missing proc I/O fields, likely permission-dependent), so no reliable total disk writes can be derived from this watcher.
+- No explicit kernel OOM-killer message; OOM is strongly indicated by full zram + exit 137.
+
+**Engineering decision:** Pause this disk-backed SwfMovie cache path. It is technically verified but only covers ~66 MiB of movie bytes before the load abort, while the process consumes ~1.5 GiB resident+swap. Do **not** increase swap or cache sizes or request repeated retests of identical code. Next investigate large **AVM2 ByteArray buffers** and **decoded BitmapData CPU pixels**, both excluded from this cache. Ruffle's ordinary `BitmapCharacter` is already lazily decoded, so indiscriminately adding lazy bitmap decoding is not a new fix without locating the actual allocations. Any new candidate needs measurable allocation evidence and must preserve game behaviors and ARM64 compatibility.
+
