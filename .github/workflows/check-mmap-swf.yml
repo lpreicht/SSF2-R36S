@@ -1,0 +1,50 @@
+name: Check Opt-In File-Backed SWF Cache
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tools/ci/patch_mmap_swf.py'
+      - '.github/workflows/check-mmap-swf.yml'
+permissions:
+  contents: read
+jobs:
+  test-mmap-cache:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ssf2
+      - uses: actions/checkout@v4
+        with:
+          repository: aweigit/ruffle-miyooflip
+          ref: 2d8383792ad9ca984d14a2787858151ff03e4434
+          path: upstream
+          persist-credentials: false
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openjdk-17-jdk clang cmake pkg-config libssl-dev libdbus-1-dev libasound2-dev libsdl2-dev libudev-dev libegl1-mesa-dev libgles2-mesa-dev
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Validate patch Python
+        run: |
+          python3 -m py_compile ssf2/tools/ci/patch_owned_fws.py ssf2/tools/ci/patch_mmap_swf.py
+      - name: Patch pinned Ruffle (owned-FWS, opt-in mmap)
+        run: |
+          python3 ssf2/tools/ci/patch_owned_fws.py upstream
+          python3 ssf2/tools/ci/patch_mmap_swf.py upstream
+      - name: Check Ruffle with mmap cache feature
+        working-directory: upstream
+        env:
+          CARGO_BUILD_JOBS: '2'
+        run: cargo check --locked -p ruffle_core --features disk-mmap-experiment --lib
+      - name: Run bitmap/SWF mmap storage tests
+        working-directory: upstream
+        env:
+          CARGO_BUILD_JOBS: '2'
+        run: cargo test --locked -p ruffle_common --features disk-mmap-experiment --lib
+      - name: Ensure disabled-by-default build still compiles
+        working-directory: upstream
+        env:
+          CARGO_BUILD_JOBS: '2'
+        run: cargo check --locked -p ruffle_core --lib
