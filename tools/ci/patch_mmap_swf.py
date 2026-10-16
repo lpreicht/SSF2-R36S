@@ -86,7 +86,10 @@ impl SwfStorage {
                             unsafe { memmap2::MmapOptions::new().map(&file) }
                         })();
                         match result {
-                            Ok(mapped) => return Self::Mapped(std::sync::Arc::new(mapped)),
+                            Ok(mapped) => {
+                                tracing::info!("Disk-backed SWF mapped: {} bytes", len);
+                                return Self::Mapped(std::sync::Arc::new(mapped));
+                            },
                             Err(error) => {
                                 RESERVED.fetch_sub(len, Ordering::SeqCst);
                                 tracing::warn!("SWF disk cache disabled for resource: {}", error);
