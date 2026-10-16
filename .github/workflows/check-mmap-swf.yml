@@ -37,14 +37,14 @@ jobs:
         working-directory: upstream
         env:
           CARGO_BUILD_JOBS: '2'
-        run: cargo check --locked -p ruffle_core --features disk-mmap-experiment --lib
+        run: cargo check -p ruffle_core --features disk-mmap-experiment --lib
       - name: Run bitmap/SWF mmap storage tests
         working-directory: upstream
         env:
           CARGO_BUILD_JOBS: '2'
-        run: cargo test --locked -p ruffle_common --features disk-mmap-experiment --lib
+        run: cargo test -p ruffle_common --features disk-mmap-experiment --lib
       - name: Ensure disabled-by-default build still compiles
         working-directory: upstream
         env:
           CARGO_BUILD_JOBS: '2'
-        run: cargo check --locked -p ruffle_core --lib
+        run: cargo check -p ruffle_core --lib
